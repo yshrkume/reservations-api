@@ -2,11 +2,19 @@ const twilio = require('twilio');
 
 class SMSService {
   constructor() {
-    this.client = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    );
-    this.fromNumber = process.env.TWILIO_PHONE_NUMBER;
+    // SMS機能は現在無効化されています
+    // Twilio設定が必要な場合は環境変数を設定してください
+    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+      this.client = twilio(
+        process.env.TWILIO_ACCOUNT_SID,
+        process.env.TWILIO_AUTH_TOKEN
+      );
+      this.fromNumber = process.env.TWILIO_PHONE_NUMBER;
+      this.enabled = true;
+    } else {
+      this.enabled = false;
+      console.log('SMS機能は無効化されています (Twilio設定なし)');
+    }
   }
 
   formatTimeSlot(timeSlot) {
@@ -24,6 +32,11 @@ class SMSService {
   }
 
   async sendConfirmation(phone, reservation) {
+    if (!this.enabled) {
+      console.log('SMS送信をスキップ (Twilio未設定):', phone);
+      return { success: true, messageId: 'disabled' };
+    }
+
     const timeRange = this.formatTimeSlot(reservation.timeSlot);
     const date = new Date(reservation.date).toLocaleDateString('ja-JP');
     
@@ -50,6 +63,11 @@ Thank you for choosing us!`;
   }
 
   async sendCancellation(phone, reservation) {
+    if (!this.enabled) {
+      console.log('SMS送信をスキップ (Twilio未設定):', phone);
+      return { success: true, messageId: 'disabled' };
+    }
+
     const timeRange = this.formatTimeSlot(reservation.timeSlot);
     const date = new Date(reservation.date).toLocaleDateString('ja-JP');
     
@@ -75,6 +93,11 @@ We hope to see you again soon!`;
   }
 
   async sendReminder(phone, reservation) {
+    if (!this.enabled) {
+      console.log('SMS送信をスキップ (Twilio未設定):', phone);
+      return { success: true, messageId: 'disabled' };
+    }
+
     const timeRange = this.formatTimeSlot(reservation.timeSlot);
     const date = new Date(reservation.date).toLocaleDateString('ja-JP');
     
