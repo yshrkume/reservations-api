@@ -113,23 +113,11 @@ router.post('/', validateRequest(createReservationSchema), async (req, res) => {
       });
     });
 
-    // コスト削減: 条件付きSMS送信
-    let smsResult = { success: false, reason: 'not_sent' };
-    
-    // 4名以上の予約のみSMS送信（コスト削減オプション）
-    const shouldSendSMS = process.env.SMS_COST_SAVING === 'true' 
-      ? result.partySize >= 4  // 4名以上のみ
-      : true;  // 通常は全て送信
-    
-    if (shouldSendSMS) {
-      smsResult = await smsService.sendConfirmation(phone, result);
-    } else {
-      console.log(`SMS送信スキップ（コスト削減）: ${result.partySize}名の予約`);
-    }
+    const smsResult = await smsService.sendConfirmation(phone, result);
     
     res.status(201).json({
       reservation: result,
-      sms: smsResult.success ? 'sent' : smsResult.reason || 'failed'
+      sms: smsResult.success ? 'sent' : 'failed'
     });
 
   } catch (error) {
