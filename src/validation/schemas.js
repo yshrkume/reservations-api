@@ -14,9 +14,18 @@ const createReservationSchema = Joi.object({
     .min(0)
     .max(39)
     .required()
+    .custom((value, helpers) => {
+      // For slots 28+ (25:00+), need to ensure they don't book too late
+      // All slots 0-39 are valid for booking, duration is handled in business logic
+      if (value > 39) {
+        return helpers.error('timeSlot.invalid');
+      }
+      return value;
+    })
     .messages({
       'number.min': '時間枠は0（18:00）から39（27:45）の間で指定してください',
-      'number.max': '時間枠は0（18:00）から39（27:45）の間で指定してください'
+      'number.max': '時間枠は0（18:00）から39（27:45）の間で指定してください',
+      'timeSlot.invalid': '時間枠は0（18:00）から39（27:45）の間で指定してください'
     }),
   partySize: Joi.number()
     .integer()

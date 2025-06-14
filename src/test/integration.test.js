@@ -53,7 +53,7 @@ describe('Seat-Based Reservation System Integration Tests', () => {
         .get('/reservations/availability/2025-06-25')
         .expect(200);
 
-      // Should only have slots 12+ available (21:00+)
+      // Should only have slots 12+ available (21:00+) since 18:00 booking blocks until 21:00
       const availableSlotNumbers = availability.body.availableSlots.map(s => s.slot);
       expect(availableSlotNumbers.every(slot => slot >= 12)).toBe(true);
     });
@@ -81,7 +81,8 @@ describe('Seat-Based Reservation System Integration Tests', () => {
         })
         .expect(201);
 
-      // Try to book 2 more people at 20:00 (should fail - would exceed capacity)
+      // Try to book 2 more people at 20:00 (should fail - would exceed capacity at overlapping times)
+      // At 20:00, both previous reservations overlap: 3+2+2=7 > 6 capacity
       await request(app)
         .post('/reservations')
         .send({
@@ -197,12 +198,12 @@ describe('Seat-Based Reservation System Integration Tests', () => {
     });
 
     test('should reject invalid time slots', async () => {
-      // Test slot beyond range (29+ not allowed for 3-hour reservations)
+      // Test slot beyond range (40+ not allowed - max is 39 for 27:45)
       await request(app)
         .post('/reservations')
         .send({
           ...validReservation,
-          timeSlot: 29
+          timeSlot: 40
         })
         .expect(400);
 
@@ -263,7 +264,8 @@ describe('Seat-Based Reservation System Integration Tests', () => {
       const slot10 = availability.body.availableSlots.find(s => s.slot === 10);
       expect(slot10).toBeUndefined();
 
-      // Should have 28 available slots (29 total - 1 fully booked)
+      // Slot 10 at 20:30 with 6 people blocks slots 10-21 (3 hours)
+      // So we lose 12 slots, not just 1: 40 - 12 = 28 available slots
       expect(availability.body.availableSlots).toHaveLength(28);
     });
   });
@@ -346,12 +348,12 @@ describe('Seat-Based Reservation System Integration Tests', () => {
         })
         .expect(201);
 
-      // Test maximum party size (different time slot)
+      // Test maximum party size (non-overlapping time slot)
       await request(app)
         .post('/reservations')
         .send({
           ...validReservation,
-          timeSlot: 9, // Different slot from the first reservation
+          timeSlot: 16, // 22:00 - non-overlapping with first reservation (slot 4 = 19:00-22:00)
           partySize: 6,
           name: 'Customer 2',
           phone: '+1987654321'

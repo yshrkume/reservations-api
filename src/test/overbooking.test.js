@@ -70,7 +70,7 @@ describe('Overbooking Prevention Tests', () => {
         })
         .expect(409);
 
-      expect(thirdReservation.body.error).toBe('Not enough seats available');
+      expect(thirdReservation.body.error).toBe('座席が不足しています');
     });
 
     test('should allow booking different time slots on same date', async () => {
@@ -83,13 +83,13 @@ describe('Overbooking Prevention Tests', () => {
         .post('/reservations')
         .send({
           ...validReservation,
-          timeSlot: 5,
+          timeSlot: 16, // 22:00 - non-overlapping with slot 4 (19:00-22:00)
           name: 'Another Customer',
           phone: '+1987654321'
         })
         .expect(201);
 
-      expect(differentSlot.body.reservation.timeSlot).toBe(5);
+      expect(differentSlot.body.reservation.timeSlot).toBe(16);
     });
 
     test('should allow booking same time slot on different dates', async () => {
@@ -146,7 +146,7 @@ describe('Overbooking Prevention Tests', () => {
       expect(totalResults.length).toBe(3);
 
       failedBookings.forEach(booking => {
-        expect(booking.value.body.error).toBe('Not enough seats available');
+        expect(booking.value.body.error).toBe('座席が不足しています');
       });
     });
 
@@ -267,15 +267,18 @@ describe('Overbooking Prevention Tests', () => {
       // Book sequentially to avoid database locking issues
       const results = [];
       
-      for (let slot = 0; slot <= 5; slot++) { // Test fewer slots to avoid timeout
+      // Test non-overlapping slots only (every 12 slots = 3 hours apart)
+      const nonOverlappingSlots = [0, 12, 24, 36]; // 18:00, 21:00, 24:00, 27:00
+      for (let i = 0; i < nonOverlappingSlots.length; i++) {
+        const slot = nonOverlappingSlots[i];
         const result = await request(app)
           .post('/reservations')
           .send({
             ...validReservation,
             timeSlot: slot,
             partySize: 6, // Full capacity
-            name: `Customer ${slot}`,
-            phone: `+12345678${slot.toString().padStart(2, '0')}`
+            name: `Customer ${i}`,
+            phone: `+12345678${i.toString().padStart(2, '0')}`
           });
         results.push(result);
       }
@@ -296,7 +299,7 @@ describe('Overbooking Prevention Tests', () => {
         })
         .expect(409);
 
-      expect(extraBooking.body.error).toBe('Not enough seats available');
+      expect(extraBooking.body.error).toBe('座席が不足しています');
     });
 
     test('should verify availability endpoint reflects bookings', async () => {
@@ -313,7 +316,7 @@ describe('Overbooking Prevention Tests', () => {
         .post('/reservations')
         .send({
           ...validReservation,
-          timeSlot: 5,
+          timeSlot: 12, // 21:00 - non-overlapping with slot 0
           partySize: 6, // Full capacity
           name: 'Another Customer',
           phone: '+1987654321'
@@ -324,15 +327,16 @@ describe('Overbooking Prevention Tests', () => {
         .get('/reservations/availability/2025-06-25')
         .expect(200);
 
-      // Should have 26 available slots (all except slots 0 and 5)
-      expect(availability.body.availableSlots).toHaveLength(26);
+      // Slot 0 blocks 0-11 (12 slots), Slot 12 blocks 12-23 (12 slots)
+      // Total: 40 - 24 = 16 available slots
+      expect(availability.body.availableSlots).toHaveLength(16);
       
-      // Check that slots 0 and 5 show reduced availability
+      // Check that blocked slots don't appear
       const slot0 = availability.body.availableSlots.find(s => s.slot === 0);
-      const slot5 = availability.body.availableSlots.find(s => s.slot === 5);
+      const slot12 = availability.body.availableSlots.find(s => s.slot === 12);
       
       expect(slot0).toBeUndefined(); // Slot 0 should not appear (fully booked)
-      expect(slot5).toBeUndefined(); // Slot 5 should not appear (fully booked)
+      expect(slot12).toBeUndefined(); // Slot 12 should not appear (fully booked)
     });
   });
 });
