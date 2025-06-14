@@ -22,8 +22,23 @@ try {
   process.exit(1);
 }
 
-app.use(cors());
+// CORS configuration
+const corsOptions = {
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true
+};
+app.use(cors(corsOptions));
 app.use(express.json());
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log('Base URL:', req.baseUrl);
+  console.log('Original URL:', req.originalUrl);
+  next();
+});
 
 // Health check with database connection test
 app.get('/health', async (req, res) => {
@@ -51,6 +66,18 @@ try {
   console.error('Failed to load routes:', error);
   process.exit(1);
 }
+
+// 404 handler - catch all unmatched routes
+app.use((req, res, next) => {
+  console.log(`404 - Not Found: ${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
+  res.status(404).json({
+    error: 'Not Found',
+    method: req.method,
+    url: req.url,
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
