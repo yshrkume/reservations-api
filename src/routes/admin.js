@@ -1,22 +1,55 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
+const crypto = require('crypto');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Simple admin authentication middleware
+// Secure admin authentication middleware with timing attack protection
 const authenticateAdmin = (req, res, next) => {
   const { password } = req.body || req.headers;
   const adminPassword = process.env.ADMIN_PASSWORD;
   
-  if (password !== adminPassword) {
+  // Input validation
+  if (!password || typeof password !== 'string') {
     return res.status(401).json({
       error: '認証が必要です',
       message: '管理者パスワードが正しくありません'
     });
   }
   
-  next();
+  if (!adminPassword) {
+    console.error('ADMIN_PASSWORD environment variable is not set');
+    return res.status(500).json({
+      error: 'サーバーエラー',
+      message: 'サーバー設定に問題があります'
+    });
+  }
+  
+  // Use timing-safe comparison to prevent timing attacks
+  try {
+    const providedBuffer = Buffer.from(password, 'utf8');
+    const expectedBuffer = Buffer.from(adminPassword, 'utf8');
+    
+    // Ensure both buffers have the same length to prevent timing attacks
+    const isValidLength = providedBuffer.length === expectedBuffer.length;
+    const isValidPassword = isValidLength && crypto.timingSafeEqual(providedBuffer, expectedBuffer);
+    
+    if (!isValidPassword) {
+      return res.status(401).json({
+        error: '認証が必要です',
+        message: '管理者パスワードが正しくありません'
+      });
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return res.status(401).json({
+      error: '認証が必要です',
+      message: '管理者パスワードが正しくありません'
+    });
+  }
 };
 
 // Admin login endpoint

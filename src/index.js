@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const { PrismaClient } = require('@prisma/client');
 
 const app = express();
@@ -35,15 +36,96 @@ try {
   process.exit(1);
 }
 
-// CORS configuration
+// CORS configuration - secure by default, configurable for different environments
+const getAllowedOrigins = () => {
+  // If ALLOWED_ORIGINS is explicitly set, use it
+  if (process.env.ALLOWED_ORIGINS) {
+    return process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim());
+  }
+  
+  // Default allowed origins based on environment
+  const defaultOrigins = [
+    'http://localhost:3001', // Local development (Next.js default)
+    'http://localhost:3000', // Alternative local port
+    'https://reservation-web-yshrkumes-projects.vercel.app', // Vercel deployment
+  ];
+  
+  // In development, be more permissive but still secure
+  if (process.env.NODE_ENV === 'development') {
+    defaultOrigins.push('http://127.0.0.1:3000', 'http://127.0.0.1:3001');
+  }
+  
+  return defaultOrigins;
+};
+
 const corsOptions = {
-  origin: '*',
+  origin: function (origin, callback) {
+    const allowedOrigins = getAllowedOrigins();
+    
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked request from origin: ${origin}`);
+      console.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
+      callback(new Error('CORS policy: Origin not allowed'), false);
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true
 };
+
+console.log('CORS allowed origins:', getAllowedOrigins());
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Rate limiting configuration - protective but not overly restrictive
+const createRateLimiter = (windowMs, max, message) => {
+  return rateLimit({
+    windowMs,
+    max,
+    message: {
+      error: 'レート制限',
+      message: message,
+      retryAfter: Math.ceil(windowMs / 1000)
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    // Skip rate limiting in development if explicitly disabled
+    skip: (req) => {
+      return process.env.NODE_ENV === 'development' && process.env.DISABLE_RATE_LIMIT === 'true';
+    }
+  });
+};
+
+// General API rate limit - generous for normal usage
+const generalRateLimit = createRateLimiter(
+  15 * 60 * 1000, // 15 minutes
+  100, // 100 requests per 15 minutes per IP
+  'APIリクエストが多すぎます。15分後に再試行してください。'
+);
+
+// Admin endpoints - more restrictive
+const adminRateLimit = createRateLimiter(
+  15 * 60 * 1000, // 15 minutes
+  20, // 20 requests per 15 minutes for admin operations
+  '管理者操作のリクエストが多すぎます。15分後に再試行してください。'
+);
+
+// Reservation creation - moderate restriction
+const reservationRateLimit = createRateLimiter(
+  5 * 60 * 1000, // 5 minutes
+  10, // 10 reservation attempts per 5 minutes
+  '予約リクエストが多すぎます。5分後に再試行してください。'
+);
+
+// Apply general rate limiting to all routes
+app.use(generalRateLimit);
+
+console.log('Rate limiting configured - General: 100 req/15min, Admin: 20 req/15min, Reservations: 10 req/5min');
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -86,9 +168,14 @@ try {
   const adminRouter = require('./routes/admin');
   console.log('Routes loaded successfully');
   
+  // Apply specific rate limits to routes
   app.use('/reservations', reservationsRouter);
   app.use('/api/reservations', reservationsRouter);
-  app.use('/admin', adminRouter);
+  app.use('/admin', adminRateLimit, adminRouter);
+  
+  // Apply stricter rate limit to reservation creation endpoint
+  app.post('/reservations', reservationRateLimit);
+  app.post('/api/reservations', reservationRateLimit);
   console.log('Routes registered successfully');
 } catch (error) {
   console.error('Failed to load routes:', error);
