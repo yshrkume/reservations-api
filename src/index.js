@@ -37,6 +37,9 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   console.log('Base URL:', req.baseUrl);
   console.log('Original URL:', req.originalUrl);
+  if (req.method === 'POST') {
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+  }
   next();
 });
 
