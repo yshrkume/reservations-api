@@ -18,8 +18,8 @@ try {
   });
   console.log('Prisma client initialized successfully');
   
-  // Run database migration in production
-  if (process.env.NODE_ENV === 'production') {
+  // Run database migration only if explicitly requested
+  if (process.env.RUN_MIGRATION === 'true') {
     console.log('Running database migration...');
     const { execSync } = require('child_process');
     try {
