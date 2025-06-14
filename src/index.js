@@ -5,7 +5,22 @@ const { PrismaClient } = require('@prisma/client');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const prisma = new PrismaClient();
+
+console.log('Starting application...');
+console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`PORT: ${PORT}`);
+console.log(`DATABASE_URL exists: ${!!process.env.DATABASE_URL}`);
+
+let prisma;
+try {
+  prisma = new PrismaClient({
+    log: ['error', 'warn'],
+  });
+  console.log('Prisma client initialized successfully');
+} catch (error) {
+  console.error('Failed to initialize Prisma client:', error);
+  process.exit(1);
+}
 
 app.use(cors());
 app.use(express.json());
@@ -22,12 +37,20 @@ app.get('/health', async (req, res) => {
 });
 
 // Load routes after health check
-const reservationsRouter = require('./routes/reservations');
-const adminRouter = require('./routes/admin');
-
-app.use('/reservations', reservationsRouter);
-app.use('/api/reservations', reservationsRouter);
-app.use('/admin', adminRouter);
+try {
+  console.log('Loading routes...');
+  const reservationsRouter = require('./routes/reservations');
+  const adminRouter = require('./routes/admin');
+  console.log('Routes loaded successfully');
+  
+  app.use('/reservations', reservationsRouter);
+  app.use('/api/reservations', reservationsRouter);
+  app.use('/admin', adminRouter);
+  console.log('Routes registered successfully');
+} catch (error) {
+  console.error('Failed to load routes:', error);
+  process.exit(1);
+}
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
@@ -36,8 +59,24 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+// Global error handlers
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
   console.log(`Database URL configured: ${!!process.env.DATABASE_URL}`);
+  console.log('Application started successfully');
+});
+
+server.on('error', (error) => {
+  console.error('Server error:', error);
 });
