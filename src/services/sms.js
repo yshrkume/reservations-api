@@ -11,6 +11,12 @@ class SMSService {
       );
       this.fromNumber = process.env.TWILIO_PHONE_NUMBER;
       this.enabled = true;
+      
+      // 海外番号使用時の警告
+      if (this.fromNumber && this.fromNumber.startsWith('+1')) {
+        console.warn('⚠️  アメリカの番号から日本へSMS送信中。配信率に影響する可能性があります。');
+        console.log('推奨: 日本のTwilio番号の取得を検討してください。');
+      }
     } else {
       this.enabled = false;
       console.log('SMS機能は無効化されています (Twilio設定なし)');
@@ -99,6 +105,9 @@ ${reservation.name}様
 
 当日お待ちしております。
 
+※このメッセージは自動送信です
+※ご質問は店舗まで直接お電話ください
+
 義田鮨`;
 
     try {
@@ -148,6 +157,9 @@ ${reservation.name}様
 予約ID：${reservation.id}
 
 またのご利用をお待ちしております。
+
+※このメッセージは自動送信です
+※ご質問は店舗まで直接お電話ください
 
 義田鮨`;
 
