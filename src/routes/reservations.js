@@ -28,11 +28,21 @@ router.post('/', validateRequest(createReservationSchema), async (req, res) => {
 
     // Check seat capacity for 3-hour duration using a transaction to prevent race conditions
     const result = await prisma.$transaction(async (tx) => {
-      // Calculate 12 time slots (3 hours) that this reservation will occupy
+      // Calculate occupied slots based on time slot position
       const occupiedSlots = [];
-      for (let i = 0; i < 12; i++) {
-        const slot = timeSlot + i;
-        if (slot <= 27) { // Don't exceed the last slot (25:00)
+      const maxSlot = 39; // 27:45-28:00 is the last slot
+      
+      if (timeSlot <= 27) {
+        // Regular hours: 3 hours (12 slots) but don't exceed maxSlot
+        for (let i = 0; i < 12; i++) {
+          const slot = timeSlot + i;
+          if (slot <= maxSlot) {
+            occupiedSlots.push(slot);
+          }
+        }
+      } else {
+        // Late night hours (25:00+): reserve until 28:00 (slot 39)
+        for (let slot = timeSlot; slot <= maxSlot; slot++) {
           occupiedSlots.push(slot);
         }
       }
@@ -47,14 +57,36 @@ router.post('/', validateRequest(createReservationSchema), async (req, res) => {
         }
       });
 
+      // Helper function to calculate occupied slots for any reservation
+      const calculateOccupiedSlots = (reservationTimeSlot) => {
+        const slots = [];
+        const maxSlot = 39;
+        
+        if (reservationTimeSlot <= 27) {
+          // Regular hours: 3 hours (12 slots) but don't exceed maxSlot
+          for (let i = 0; i < 12; i++) {
+            const slot = reservationTimeSlot + i;
+            if (slot <= maxSlot) {
+              slots.push(slot);
+            }
+          }
+        } else {
+          // Late night hours (25:00+): reserve until 28:00 (slot 39)
+          for (let slot = reservationTimeSlot; slot <= maxSlot; slot++) {
+            slots.push(slot);
+          }
+        }
+        return slots;
+      };
+
       // Check capacity for each slot that will be occupied by the new reservation
       for (const slot of occupiedSlots) {
         // Calculate occupied seats for this specific slot
         const slotOccupiedSeats = existingReservations
           .filter(res => {
             // Check if this existing reservation overlaps with the current slot
-            const resEndSlot = res.timeSlot + 11; // 3 hours = 12 slots (0-11)
-            return res.timeSlot <= slot && slot <= resEndSlot;
+            const resOccupiedSlots = calculateOccupiedSlots(res.timeSlot);
+            return resOccupiedSlots.includes(slot);
           })
           .reduce((sum, res) => sum + res.partySize, 0);
         
@@ -223,18 +255,38 @@ router.get('/availability/:date', async (req, res) => {
     const maxCapacity = 6;
     const availableSlots = [];
     
-    // Check slots from 18:00 to 25:00 (slot 0-28)
-    // Note: Only slots 0-28 can start a 3-hour reservation (25:00-04:00, ending at 28:00)
-    for (let slot = 0; slot <= 28; slot++) {
-      // Calculate occupied seats for this slot considering 3-hour overlaps
+    // Helper function to calculate occupied slots for any reservation
+    const calculateOccupiedSlots = (reservationTimeSlot) => {
+      const slots = [];
+      const maxSlot = 39;
+      
+      if (reservationTimeSlot <= 27) {
+        // Regular hours: 3 hours (12 slots) but don't exceed maxSlot
+        for (let i = 0; i < 12; i++) {
+          const slot = reservationTimeSlot + i;
+          if (slot <= maxSlot) {
+            slots.push(slot);
+          }
+        }
+      } else {
+        // Late night hours (25:00+): reserve until 28:00 (slot 39)
+        for (let slot = reservationTimeSlot; slot <= maxSlot; slot++) {
+          slots.push(slot);
+        }
+      }
+      return slots;
+    };
+    
+    // Check slots from 18:00 to 27:45 (slot 0-39)
+    for (let slot = 0; slot <= 39; slot++) {
+      // Calculate occupied seats for this slot considering variable duration overlaps
       let usedSeats = 0;
       
       existingReservations.forEach(reservation => {
-        const resStartSlot = reservation.timeSlot;
-        const resEndSlot = resStartSlot + 11; // 3 hours = 12 slots (0-11)
+        const resOccupiedSlots = calculateOccupiedSlots(reservation.timeSlot);
         
         // Check if this reservation overlaps with the current slot
-        if (resStartSlot <= slot && slot <= resEndSlot) {
+        if (resOccupiedSlots.includes(slot)) {
           usedSeats += reservation.partySize;
         }
       });

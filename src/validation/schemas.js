@@ -12,11 +12,11 @@ const createReservationSchema = Joi.object({
   timeSlot: Joi.number()
     .integer()
     .min(0)
-    .max(28)
+    .max(39)
     .required()
     .messages({
-      'number.min': '時間枠は0（18:00）から28（25:00）の間で指定してください',
-      'number.max': '時間枠は0（18:00）から28（25:00）の間で指定してください'
+      'number.min': '時間枠は0（18:00）から39（27:45）の間で指定してください',
+      'number.max': '時間枠は0（18:00）から39（27:45）の間で指定してください'
     }),
   partySize: Joi.number()
     .integer()
