@@ -88,21 +88,28 @@ router.get('/batch', async (req, res) => {
       
       // Check slots from 18:00 to 27:45 (slot 0-39)
       for (let slot = 0; slot <= 39; slot++) {
-        // Calculate occupied seats for this slot considering variable duration overlaps
-        let usedSeats = 0;
+        // Calculate maximum bookable seats for 3-hour reservation starting from this slot
+        const occupiedSlotsForNewReservation = calculateOccupiedSlots(slot);
+        let minAvailableSeats = maxCapacity;
         
-        dateReservations.forEach(reservation => {
-          const resOccupiedSlots = calculateOccupiedSlots(reservation.timeSlot);
+        // Check capacity for each slot that would be occupied by a new reservation
+        for (const checkSlot of occupiedSlotsForNewReservation) {
+          let usedSeats = 0;
           
-          // Check if this reservation overlaps with the current slot
-          if (resOccupiedSlots.includes(slot)) {
-            usedSeats += reservation.partySize;
-          }
-        });
+          dateReservations.forEach(reservation => {
+            const resOccupiedSlots = calculateOccupiedSlots(reservation.timeSlot);
+            
+            // Check if this reservation overlaps with the current check slot
+            if (resOccupiedSlots.includes(checkSlot)) {
+              usedSeats += reservation.partySize;
+            }
+          });
+          
+          const availableSeatsForSlot = maxCapacity - usedSeats;
+          minAvailableSeats = Math.min(minAvailableSeats, availableSeatsForSlot);
+        }
         
-        const availableSeats = maxCapacity - usedSeats;
-        
-        if (availableSeats > 0) {
+        if (minAvailableSeats > 0) {
           const startHour = Math.floor(slot / 4) + 18;
           const startMin = (slot % 4) * 15;
           const endHour = Math.floor((slot + 1) / 4) + 18;
@@ -116,7 +123,7 @@ router.get('/batch', async (req, res) => {
           availableSlots.push({
             slot,
             time: `${formatTime(startHour, startMin)}-${formatTime(endHour, endMin)}`,
-            availableSeats,
+            availableSeats: minAvailableSeats,
             maxCapacity
           });
         }
