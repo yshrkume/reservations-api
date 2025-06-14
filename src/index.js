@@ -17,6 +17,19 @@ try {
     log: ['error', 'warn'],
   });
   console.log('Prisma client initialized successfully');
+  
+  // Run database migration in production
+  if (process.env.NODE_ENV === 'production') {
+    console.log('Running database migration...');
+    const { execSync } = require('child_process');
+    try {
+      execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+      console.log('Database migration completed successfully');
+    } catch (migrationError) {
+      console.error('Migration failed:', migrationError);
+      console.log('Continuing without migration - database might already be set up');
+    }
+  }
 } catch (error) {
   console.error('Failed to initialize Prisma client:', error);
   process.exit(1);
