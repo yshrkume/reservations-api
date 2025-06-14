@@ -201,9 +201,9 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-router.get('/availability', async (req, res) => {
+router.get('/availability/:date', async (req, res) => {
   try {
-    const { date } = req.query;
+    const { date } = req.params;
     const queryDate = new Date(date);
     queryDate.setHours(0, 0, 0, 0);
 
