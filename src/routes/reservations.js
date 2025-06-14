@@ -90,6 +90,7 @@ router.post('/', validateRequest(createReservationSchema), async (req, res) => {
 
   } catch (error) {
     console.error('Create reservation error:', error);
+    console.error('Error stack:', error.stack);
     
     // Handle capacity exceeded error
     if (error.message.includes('座席が不足しています')) {
@@ -101,7 +102,8 @@ router.post('/', validateRequest(createReservationSchema), async (req, res) => {
     
     res.status(500).json({
       error: 'サーバーエラー',
-      message: '予約の作成に失敗しました'
+      message: '予約の作成に失敗しました',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
