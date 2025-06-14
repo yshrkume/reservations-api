@@ -97,10 +97,11 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
   console.log(`Database URL configured: ${!!process.env.DATABASE_URL}`);
+  console.log(`Actually listening on port: ${server.address().port}`);
   console.log('Application started successfully');
 });
 
