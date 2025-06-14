@@ -235,6 +235,10 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Batch availability endpoint for performance optimization
+const batchAvailabilityRouter = require('./batch-availability');
+router.use('/availability', batchAvailabilityRouter);
+
 router.get('/availability/:date', async (req, res) => {
   try {
     const { date } = req.params;
