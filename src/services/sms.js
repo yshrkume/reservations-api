@@ -17,6 +17,39 @@ class SMSService {
     }
   }
 
+  // 電話番号をE164形式に正規化
+  normalizePhoneNumber(phone) {
+    if (!phone) return null;
+    
+    // 文字列に変換し、空白・ハイフン・括弧を除去
+    let cleanPhone = phone.toString().replace(/[\s\-\(\)]/g, '');
+    
+    // 既にE164形式（+から始まる）の場合はそのまま返す
+    if (cleanPhone.startsWith('+')) {
+      return cleanPhone;
+    }
+    
+    // 日本の番号の場合の処理
+    if (cleanPhone.startsWith('0')) {
+      // 先頭の0を除去して+81を追加
+      return '+81' + cleanPhone.substring(1);
+    }
+    
+    // 81から始まる場合（国際形式だが+がない）
+    if (cleanPhone.startsWith('81')) {
+      return '+' + cleanPhone;
+    }
+    
+    // その他の場合は日本の番号として扱う
+    if (cleanPhone.length >= 10) {
+      return '+81' + cleanPhone;
+    }
+    
+    // 無効な番号
+    console.warn('無効な電話番号形式:', phone);
+    return null;
+  }
+
   formatTimeSlot(timeSlot) {
     const startHour = Math.floor(timeSlot * 0.25) + 18;
     const startMin = (timeSlot % 4) * 15;
@@ -35,6 +68,13 @@ class SMSService {
     if (!this.enabled) {
       console.log('SMS送信をスキップ (Twilio未設定):', phone);
       return { success: true, messageId: 'disabled' };
+    }
+
+    // 電話番号を正規化
+    const normalizedPhone = this.normalizePhoneNumber(phone);
+    if (!normalizedPhone) {
+      console.error('無効な電話番号:', phone);
+      return { success: false, error: '無効な電話番号形式です' };
     }
 
     const timeRange = this.formatTimeSlot(reservation.timeSlot);
@@ -65,7 +105,7 @@ ${reservation.name}様
       const result = await this.client.messages.create({
         body: message,
         from: this.fromNumber,
-        to: phone
+        to: normalizedPhone
       });
       return { success: true, messageId: result.sid };
     } catch (error) {
@@ -78,6 +118,13 @@ ${reservation.name}様
     if (!this.enabled) {
       console.log('SMS送信をスキップ (Twilio未設定):', phone);
       return { success: true, messageId: 'disabled' };
+    }
+
+    // 電話番号を正規化
+    const normalizedPhone = this.normalizePhoneNumber(phone);
+    if (!normalizedPhone) {
+      console.error('無効な電話番号:', phone);
+      return { success: false, error: '無効な電話番号形式です' };
     }
 
     const timeRange = this.formatTimeSlot(reservation.timeSlot);
@@ -108,7 +155,7 @@ ${reservation.name}様
       const result = await this.client.messages.create({
         body: message,
         from: this.fromNumber,
-        to: phone
+        to: normalizedPhone
       });
       return { success: true, messageId: result.sid };
     } catch (error) {
@@ -121,6 +168,13 @@ ${reservation.name}様
     if (!this.enabled) {
       console.log('SMS送信をスキップ (Twilio未設定):', phone);
       return { success: true, messageId: 'disabled' };
+    }
+
+    // 電話番号を正規化
+    const normalizedPhone = this.normalizePhoneNumber(phone);
+    if (!normalizedPhone) {
+      console.error('無効な電話番号:', phone);
+      return { success: false, error: '無効な電話番号形式です' };
     }
 
     const timeRange = this.formatTimeSlot(reservation.timeSlot);
@@ -150,7 +204,7 @@ ${reservation.name}様
       const result = await this.client.messages.create({
         body: message,
         from: this.fromNumber,
-        to: phone
+        to: normalizedPhone
       });
       return { success: true, messageId: result.sid };
     } catch (error) {

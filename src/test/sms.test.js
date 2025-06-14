@@ -61,6 +61,39 @@ describe('SMS Service Tests', () => {
     });
   });
 
+  describe('Phone Number Normalization', () => {
+    test('should normalize Japanese mobile numbers', () => {
+      expect(SMSService.normalizePhoneNumber('090-1234-5678')).toBe('+819012345678');
+      expect(SMSService.normalizePhoneNumber('080 1234 5678')).toBe('+818012345678');
+      expect(SMSService.normalizePhoneNumber('07012345678')).toBe('+817012345678');
+    });
+
+    test('should handle already normalized numbers', () => {
+      expect(SMSService.normalizePhoneNumber('+819012345678')).toBe('+819012345678');
+      expect(SMSService.normalizePhoneNumber('+818012345678')).toBe('+818012345678');
+    });
+
+    test('should normalize landline numbers', () => {
+      expect(SMSService.normalizePhoneNumber('03-1234-5678')).toBe('+81312345678');
+      expect(SMSService.normalizePhoneNumber('0612345678')).toBe('+81612345678');
+    });
+
+    test('should handle numbers starting with 81', () => {
+      expect(SMSService.normalizePhoneNumber('819012345678')).toBe('+819012345678');
+    });
+
+    test('should return null for invalid numbers', () => {
+      expect(SMSService.normalizePhoneNumber('')).toBe(null);
+      expect(SMSService.normalizePhoneNumber(null)).toBe(null);
+      expect(SMSService.normalizePhoneNumber('123')).toBe(null);
+    });
+
+    test('should handle numbers with various formatting', () => {
+      expect(SMSService.normalizePhoneNumber('(090) 1234-5678')).toBe('+819012345678');
+      expect(SMSService.normalizePhoneNumber('090 - 1234 - 5678')).toBe('+819012345678');
+    });
+  });
+
   describe('Time Slot Formatting', () => {
     test('should format regular hours correctly', () => {
       const formatted = SMSService.formatTimeSlot(0); // 18:00
