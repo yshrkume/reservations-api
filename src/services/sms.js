@@ -10,14 +10,16 @@ class SMSService {
         process.env.TWILIO_AUTH_TOKEN
       );
       this.fromNumber = process.env.TWILIO_PHONE_NUMBER;
-      this.enabled = true;
       this.isTrialAccount = process.env.TWILIO_TRIAL_MODE === 'true';
       
-      // トライアルアカウントの警告
+      // トライアルアカウントの警告と自動無効化
       if (this.isTrialAccount) {
-        console.warn('⚠️  Twilioトライアルアカウントモード');
-        console.warn('検証済み電話番号にのみSMS送信可能です。');
-        console.log('検証済み番号リスト:', process.env.TWILIO_VERIFIED_NUMBERS || '未設定');
+        console.warn('⚠️  Twilioトライアルアカウントモード検出');
+        console.warn('不特定多数への送信は不可能なため、SMS機能を無効化します。');
+        console.log('SMS機能を有効にするには、Twilioアカウントのアップグレードが必要です。');
+        this.enabled = false;  // トライアルアカウントではSMS無効
+      } else {
+        this.enabled = true;
       }
       
       // 海外番号使用時の警告
