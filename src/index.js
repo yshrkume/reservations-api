@@ -47,6 +47,7 @@ const getAllowedOrigins = () => {
   const defaultOrigins = [
     'http://localhost:3001', // Local development (Next.js default)
     'http://localhost:3000', // Alternative local port
+    'https://yoshida-sushi.vercel.app', // Production domain
     'https://reservation-web-yshrkumes-projects.vercel.app', // Vercel deployment
   ];
   

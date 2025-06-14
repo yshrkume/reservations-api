@@ -196,7 +196,7 @@ describe('SMS Service Tests', () => {
       expect(result.success).toBe(true);
       expect(result.messageId).toBe('test-message-id');
       expect(mockCreate).toHaveBeenCalledWith({
-        body: expect.stringContaining('Your reservation is confirmed!'),
+        body: expect.stringContaining('【義田鮨 ご予約確認】'),
         from: '+1234567890',
         to: '+1234567890'
       });
@@ -218,7 +218,7 @@ describe('SMS Service Tests', () => {
       expect(result.success).toBe(true);
       expect(result.messageId).toBe('cancel-message-id');
       expect(mockCreate).toHaveBeenCalledWith({
-        body: expect.stringContaining('Your reservation has been cancelled'),
+        body: expect.stringContaining('【義田鮨 ご予約キャンセル】'),
         from: '+1234567890',
         to: '+1234567890'
       });
@@ -276,10 +276,10 @@ describe('SMS Service Tests', () => {
       await freshSMSService.sendConfirmation('+1234567890', reservation);
       
       const messageBody = mockCreate.mock.calls[0][0].body;
-      expect(messageBody).toContain('Your reservation is confirmed!');
-      expect(messageBody).toContain('2025/6/25');
+      expect(messageBody).toContain('【義田鮨 ご予約確認】');
+      expect(messageBody).toContain('2025年6月25日');
       expect(messageBody).toContain('19:00-19:15');
-      expect(messageBody).toContain('2 people');
+      expect(messageBody).toContain('2名様');
       expect(messageBody).toContain('Test Customer');
       expect(messageBody).toContain('res-123');
     });

@@ -1,6 +1,7 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const crypto = require('crypto');
+const smsService = require('../services/sms');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -222,11 +223,25 @@ router.delete('/reservations/:id', authenticateAdmin, async (req, res) => {
       });
     }
 
+    // Send cancellation SMS before deleting
+    let smsResult = { success: false };
+    try {
+      smsResult = await smsService.sendCancellation(existingReservation.phone, existingReservation);
+      console.log('キャンセルSMS送信結果:', smsResult);
+    } catch (smsError) {
+      console.error('キャンセルSMS送信エラー:', smsError);
+      // SMS送信失敗でも削除は続行
+    }
+
     await prisma.reservation.delete({
       where: { id }
     });
 
-    res.status(204).send();
+    res.json({
+      message: '予約を削除しました',
+      sms: smsResult.success ? 'sent' : 'failed',
+      reservation: existingReservation
+    });
   } catch (error) {
     console.error('Admin delete reservation error:', error);
     res.status(500).json({

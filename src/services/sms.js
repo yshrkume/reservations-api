@@ -38,16 +38,28 @@ class SMSService {
     }
 
     const timeRange = this.formatTimeSlot(reservation.timeSlot);
-    const date = new Date(reservation.date).toLocaleDateString('ja-JP');
+    const date = new Date(reservation.date).toLocaleDateString('ja-JP', {
+      year: 'numeric',
+      month: 'long', 
+      day: 'numeric',
+      weekday: 'long'
+    });
     
-    const message = `[Sushi Reservation] Your reservation is confirmed!
-Date: ${date}
-Time: ${timeRange} JST
-Party: ${reservation.partySize} people
-Name: ${reservation.name}
-ID: ${reservation.id}
+    const message = `【義田鮨 ご予約確認】
 
-Thank you for choosing us!`;
+${reservation.name}様
+
+ご予約を承りました。
+
+■ご予約内容
+日時：${date} ${timeRange}
+人数：${reservation.partySize}名様
+お名前：${reservation.name}様
+予約ID：${reservation.id}
+
+当日お待ちしております。
+
+義田鮨`;
 
     try {
       const result = await this.client.messages.create({
@@ -69,15 +81,28 @@ Thank you for choosing us!`;
     }
 
     const timeRange = this.formatTimeSlot(reservation.timeSlot);
-    const date = new Date(reservation.date).toLocaleDateString('ja-JP');
+    const date = new Date(reservation.date).toLocaleDateString('ja-JP', {
+      year: 'numeric',
+      month: 'long', 
+      day: 'numeric',
+      weekday: 'long'
+    });
     
-    const message = `[Sushi Reservation] Your reservation has been cancelled.
-Date: ${date}
-Time: ${timeRange} JST
-Name: ${reservation.name}
-ID: ${reservation.id}
+    const message = `【義田鮨 ご予約キャンセル】
 
-We hope to see you again soon!`;
+${reservation.name}様
+
+下記ご予約をキャンセルいたしました。
+
+■キャンセルした予約
+日時：${date} ${timeRange}
+人数：${reservation.partySize}名様
+お名前：${reservation.name}様
+予約ID：${reservation.id}
+
+またのご利用をお待ちしております。
+
+義田鮨`;
 
     try {
       const result = await this.client.messages.create({
@@ -99,15 +124,27 @@ We hope to see you again soon!`;
     }
 
     const timeRange = this.formatTimeSlot(reservation.timeSlot);
-    const date = new Date(reservation.date).toLocaleDateString('ja-JP');
+    const date = new Date(reservation.date).toLocaleDateString('ja-JP', {
+      year: 'numeric',
+      month: 'long', 
+      day: 'numeric',
+      weekday: 'long'
+    });
     
-    const message = `[Sushi Reservation] Reminder: Your reservation is tomorrow!
-Date: ${date}
-Time: ${timeRange} JST
-Party: ${reservation.partySize} people
-Name: ${reservation.name}
+    const message = `【義田鮨 ご予約リマインダー】
 
-Looking forward to serving you!`;
+${reservation.name}様
+
+明日のご予約をお忘れなく。
+
+■ご予約内容
+日時：${date} ${timeRange}
+人数：${reservation.partySize}名様
+お名前：${reservation.name}様
+
+お待ちしております。
+
+義田鮨`;
 
     try {
       const result = await this.client.messages.create({
