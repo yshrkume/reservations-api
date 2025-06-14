@@ -112,6 +112,21 @@ class SMSService {
       return { success: false, error: '無効な電話番号形式です' };
     }
 
+    // トライアルアカウントの場合、検証済み番号かチェック
+    if (this.isTrialAccount) {
+      if (!this.isVerifiedNumber(normalizedPhone)) {
+        console.warn(`トライアルアカウント: 未検証番号へのSMS送信をスキップ: ${normalizedPhone}`);
+        console.log('予約は正常に完了しました。SMS通知のみスキップされました。');
+        return { 
+          success: true,  // 予約自体は成功とする
+          messageId: 'skipped_unverified',
+          warning: 'トライアルアカウントのため、検証済み番号のみSMS送信されます'
+        };
+      } else {
+        console.log(`検証済み番号へのSMS送信: ${normalizedPhone}`);
+      }
+    }
+
     const timeRange = this.formatTimeSlot(reservation.timeSlot);
     const date = new Date(reservation.date).toLocaleDateString('ja-JP', {
       year: 'numeric',
@@ -165,6 +180,18 @@ ${reservation.name}様
       return { success: false, error: '無効な電話番号形式です' };
     }
 
+    // トライアルアカウントの場合、検証済み番号かチェック
+    if (this.isTrialAccount) {
+      if (!this.isVerifiedNumber(normalizedPhone)) {
+        console.warn(`トライアルアカウント: 未検証番号へのキャンセルSMS送信をスキップ: ${normalizedPhone}`);
+        return { 
+          success: true,
+          messageId: 'skipped_unverified',
+          warning: 'トライアルアカウントのため、検証済み番号のみSMS送信されます'
+        };
+      }
+    }
+
     const timeRange = this.formatTimeSlot(reservation.timeSlot);
     const date = new Date(reservation.date).toLocaleDateString('ja-JP', {
       year: 'numeric',
@@ -216,6 +243,18 @@ ${reservation.name}様
     if (!normalizedPhone) {
       console.error('無効な電話番号:', phone);
       return { success: false, error: '無効な電話番号形式です' };
+    }
+
+    // トライアルアカウントの場合、検証済み番号かチェック
+    if (this.isTrialAccount) {
+      if (!this.isVerifiedNumber(normalizedPhone)) {
+        console.warn(`トライアルアカウント: 未検証番号へのリマインダーSMS送信をスキップ: ${normalizedPhone}`);
+        return { 
+          success: true,
+          messageId: 'skipped_unverified',
+          warning: 'トライアルアカウントのため、検証済み番号のみSMS送信されます'
+        };
+      }
     }
 
     const timeRange = this.formatTimeSlot(reservation.timeSlot);
