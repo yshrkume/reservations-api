@@ -11,6 +11,14 @@ class SMSService {
       );
       this.fromNumber = process.env.TWILIO_PHONE_NUMBER;
       this.enabled = true;
+      this.isTrialAccount = process.env.TWILIO_TRIAL_MODE === 'true';
+      
+      // トライアルアカウントの警告
+      if (this.isTrialAccount) {
+        console.warn('⚠️  Twilioトライアルアカウントモード');
+        console.warn('検証済み電話番号にのみSMS送信可能です。');
+        console.log('検証済み番号リスト:', process.env.TWILIO_VERIFIED_NUMBERS || '未設定');
+      }
       
       // 海外番号使用時の警告
       if (this.fromNumber && this.fromNumber.startsWith('+1')) {
@@ -21,6 +29,27 @@ class SMSService {
       this.enabled = false;
       console.log('SMS機能は無効化されています (Twilio設定なし)');
     }
+  }
+
+  // トライアルアカウントで番号が検証済みかチェック
+  isVerifiedNumber(phone) {
+    if (!this.isTrialAccount) return true;
+    
+    const verifiedNumbers = process.env.TWILIO_VERIFIED_NUMBERS;
+    if (!verifiedNumbers) {
+      console.warn('TWILIO_VERIFIED_NUMBERS環境変数が未設定です');
+      return false;
+    }
+    
+    const verifiedList = verifiedNumbers.split(',').map(n => n.trim());
+    const isVerified = verifiedList.includes(phone);
+    
+    if (!isVerified) {
+      console.warn(`未検証の電話番号: ${phone}`);
+      console.log('検証済み番号リスト:', verifiedList);
+    }
+    
+    return isVerified;
   }
 
   // 電話番号をE164形式に正規化
