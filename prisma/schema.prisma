@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Reservation {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date
+  timeSlot  Int      // 0-27 representing 15-min slots from 18:00 (0=18:00-18:15, 27=24:45-25:00)
+  partySize Int      @db.SmallInt
+  name      String
+  phone     String?
+  email     String?
+  notes     String?
+  status    ReservationStatus @default(CONFIRMED)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date, timeSlot])
+  @@index([date])
+}
+
+model BusinessHours {
+  id        String @id @default(cuid())
+  dayOfWeek Int    // 0=Sunday, 1=Monday, etc.
+  openTime  String // "18:00"
+  closeTime String // "28:00" (4:00 AM next day)
+  isOpen    Boolean @default(true)
+
+  @@unique([dayOfWeek])
+}
+
+model SystemSettings {
+  id               String @id @default(cuid())
+  maxCapacity      Int    @default(6)
+  slotDurationMins Int    @default(15)
+  reservationHours Int    @default(3)
+  totalSlots       Int    @default(12)
+  dateWindowStart  DateTime @db.Date
+  dateWindowEnd    DateTime @db.Date
+  updatedAt        DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  NO_SHOW
+  COMPLETED
+}
