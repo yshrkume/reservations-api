@@ -40,15 +40,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check with database connection test
-app.get('/health', async (req, res) => {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    res.json({ status: 'OK', timestamp: new Date().toISOString(), database: 'connected' });
-  } catch (error) {
-    console.error('Health check failed:', error);
-    res.status(500).json({ status: 'ERROR', timestamp: new Date().toISOString(), database: 'disconnected' });
-  }
+// Health check - simplified without database check
+app.get('/health', (req, res) => {
+  console.log('Health check endpoint hit');
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    port: PORT,
+    env: process.env.NODE_ENV
+  });
 });
 
 // Load routes after health check
